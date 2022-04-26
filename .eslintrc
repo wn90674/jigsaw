@@ -4,5 +4,9 @@
     "curly": "off",
     "brace-style":"off",
     "@typescript-eslint/brace-style": "off"
+  },
+  "globals": {
+    "defineProps": "readonly",
+    "defineEmits":"readonly" 
   }
 }

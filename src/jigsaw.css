@@ -22,6 +22,15 @@
   border: 1px solid #e4e7eb;
 }
 
+.loadingContainer {
+  display: none;
+}
+
+.loadingContainer.loading{
+  display: block;
+  pointer-events: none;
+}
+
 .sliderContainer_active .slider {
   height: 38px;
   top: -1px;

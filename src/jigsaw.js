@@ -7,33 +7,33 @@ const r = 9 // 滑块半径
 const PI = Math.PI
 const L = l + r * 2 + 3 // 滑块实际边长
 
-function getRandomNumberByRange (start, end) {
+function getRandomNumberByRange(start, end) {
   return Math.round(Math.random() * (end - start) + start)
 }
 
-function createCanvas (width, height) {
+function createCanvas(width, height) {
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   return canvas
 }
 
-function createImg (onload) {
+function createImg(onload) {
   const img = new Image()
   img.crossOrigin = 'Anonymous'
   img.onload = onload
   img.onerror = () => {
-   img.setSrc(getRandomImgSrc()) // 图片加载失败的时候重新加载其他图片
+    img.setSrc(getRandomImgSrc()) // 图片加载失败的时候重新加载其他图片
   }
 
-  img.setSrc = function (src) {
-    const isIE = window.navigator.userAgent.indexOf('Trident') > -1
+  img.setSrc = function(src) {
+    const isIE = window.navigator.userAgent.includes('Trident')
     if (isIE) { // IE浏览器无法通过img.crossOrigin跨域，使用ajax获取图片blob然后转为dataURL显示
       const xhr = new XMLHttpRequest()
-      xhr.onloadend = function (e) {
+      xhr.onloadend = function(e) {
         const file = new FileReader() // FileReader仅支持IE10+
         file.readAsDataURL(e.target.response)
-        file.onloadend = function (e) {
+        file.onloadend = function(e) {
           img.src = e.target.result
         }
       }
@@ -48,29 +48,29 @@ function createImg (onload) {
   return img
 }
 
-function createElement (tagName, className) {
+function createElement(tagName, className) {
   const element = document.createElement(tagName)
   className && (element.className = styles[className])
   return element
 }
 
-function setClass (element, className) {
+function setClass(element, className) {
   element.className = styles[className]
 }
 
-function addClass (element, className) {
+function addClass(element, className) {
   element.classList.add(styles[className])
 }
 
-function removeClass (element, className) {
+function removeClass(element, className) {
   element.classList.remove(styles[className])
 }
 
-function getRandomImgSrc () {
+function getRandomImgSrc() {
   return `https://picsum.photos/id/${getRandomNumberByRange(0, 1084)}/${w}/${h}`
 }
 
-function drawPath (ctx, x, y, operation) {
+function drawPath(ctx, x, y, operation) {
   ctx.beginPath()
   ctx.moveTo(x, y)
   ctx.arc(x + l / 2, y - r + 2, r, 0.72 * PI, 2.26 * PI)
@@ -85,23 +85,23 @@ function drawPath (ctx, x, y, operation) {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'
   ctx.stroke()
   ctx.globalCompositeOperation = 'destination-over'
-  operation === 'fill'? ctx.fill() : ctx.clip()
+  operation === 'fill' ? ctx.fill() : ctx.clip()
 }
 
-function sum (x, y) {
+function sum(x, y) {
   return x + y
 }
 
-function square (x) {
+function square(x) {
   return x * x
 }
 
 class Jigsaw {
-  constructor ({ el, width = w, height = h, onSuccess, onFail, onRefresh }) {
+  constructor({ el, width = w, height = h, onSuccess, onFail, onRefresh }) {
     Object.assign(el.style, {
       position: 'relative',
-      width: width + 'px',
-      margin: '0 auto'
+      width: `${width}px`,
+      margin: '0 auto',
     })
     this.width = width
     this.height = height
@@ -111,19 +111,19 @@ class Jigsaw {
     this.onRefresh = onRefresh
   }
 
-  init () {
+  init() {
     this.initDOM()
     this.initImg()
     this.bindEvents()
   }
 
-  initDOM () {
+  initDOM() {
     const { width, height } = this
     const canvas = createCanvas(width, height) // 画布
     const block = createCanvas(width, height) // 滑块
     setClass(block, 'block')
     const sliderContainer = createElement('div', 'sliderContainer')
-    sliderContainer.style.width = width + 'px'
+    sliderContainer.style.width = `${width}px`
     sliderContainer.style.pointerEvents = 'none'
     const refreshIcon = createElement('div', 'refreshIcon')
     const sliderMask = createElement('div', 'sliderMask')
@@ -134,8 +134,8 @@ class Jigsaw {
 
     // 增加loading
     const loadingContainer = createElement('div', 'loadingContainer')
-    loadingContainer.style.width = width + 'px'
-    loadingContainer.style.height = height + 'px'
+    loadingContainer.style.width = `${width}px`
+    loadingContainer.style.height = `${height}px`
     const loadingIcon = createElement('div', 'loadingIcon')
     const loadingText = createElement('span')
     loadingText.innerHTML = '加载中...'
@@ -164,16 +164,16 @@ class Jigsaw {
       sliderIcon,
       text,
       canvasCtx: canvas.getContext('2d'),
-      blockCtx: block.getContext('2d')
+      blockCtx: block.getContext('2d'),
     })
   }
 
-  setLoading (isLoading) {
+  setLoading(isLoading) {
     this.loadingContainer.style.display = isLoading ? '' : 'none'
     this.sliderContainer.style.pointerEvents = isLoading ? 'none' : ''
   }
 
-  initImg () {
+  initImg() {
     const img = createImg(() => {
       this.setLoading(false)
       this.draw(img)
@@ -181,7 +181,7 @@ class Jigsaw {
     this.img = img
   }
 
-  draw (img) {
+  draw(img) {
     const { width, height } = this
     // 随机位置创建拼图形状
     this.x = getRandomNumberByRange(L + 10, width - (L + 10))
@@ -200,16 +200,16 @@ class Jigsaw {
     this.blockCtx.putImageData(ImageData, 0, y)
   }
 
-  bindEvents () {
+  bindEvents() {
     this.el.onselectstart = () => false
     this.refreshIcon.onclick = () => {
       this.reset()
       typeof this.onRefresh === 'function' && this.onRefresh()
     }
 
-    let originX, originY, trail = [], isMouseDown = false
+    let originX; let originY; const trail = []; let isMouseDown = false
 
-    const handleDragStart = function (e) {
+    const handleDragStart = function(e) {
       originX = e.clientX || e.touches[0].clientX
       originY = e.clientY || e.touches[0].clientY
       isMouseDown = true
@@ -223,12 +223,12 @@ class Jigsaw {
       const moveX = eventX - originX
       const moveY = eventY - originY
       if (moveX < 0 || moveX + 38 >= width) return false
-      this.slider.style.left = moveX + 'px'
+      this.slider.style.left = `${moveX}px`
       const blockLeft = (width - 40 - 20) / (width - 40) * moveX
-      this.block.style.left = blockLeft + 'px'
+      this.block.style.left = `${blockLeft}px`
 
       addClass(this.sliderContainer, 'sliderContainer_active')
-      this.sliderMask.style.width = moveX + 'px'
+      this.sliderMask.style.width = `${moveX}px`
       trail.push(moveY)
     }
 
@@ -265,7 +265,7 @@ class Jigsaw {
     document.addEventListener('touchend', handleDragEnd)
   }
 
-  verify () {
+  verify() {
     const arr = this.trail // 拖动时y轴的移动距离
     const average = arr.reduce(sum) / arr.length
     const deviations = arr.map(x => x - average)
@@ -277,14 +277,14 @@ class Jigsaw {
     }
   }
 
-  reset () {
+  reset() {
     const { width, height } = this
     // 重置样式
     setClass(this.sliderContainer, 'sliderContainer')
-    this.slider.style.left = 0 + 'px'
+    this.slider.style.left = `${0}px`
     this.block.width = width
-    this.block.style.left = 0 + 'px'
-    this.sliderMask.style.width = 0 + 'px'
+    this.block.style.left = `${0}px`
+    this.sliderMask.style.width = `${0}px`
 
     // 清空画布
     this.canvasCtx.clearRect(0, 0, width, height)
@@ -297,7 +297,7 @@ class Jigsaw {
 }
 
 window.jigsaw = {
-  init: function (opts) {
+  init(opts) {
     return new Jigsaw(opts).init()
-  }
+  },
 }

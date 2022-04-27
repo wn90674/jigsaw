@@ -10,6 +10,7 @@ export interface Options {
   onFail: (...args: any[]) => void
   onRefresh: (...args: any[]) => void
 }
+
 const props = defineProps({
   width: {
     type: Number,
@@ -21,15 +22,18 @@ const props = defineProps({
   },
   onSuccess: {
     type: Function,
-    default: () => {},
+    default: () => {
+    },
   },
   onFail: {
     type: Function,
-    default: () => {},
+    default: () => {
+    },
   },
   onRefresh: {
     type: Function,
-    default: () => {},
+    default: () => {
+    },
   },
 })
 // eslint-disable-next-line vue/no-setup-props-destructure
@@ -65,7 +69,7 @@ function getRandomImgSrc() {
   return `https://picsum.photos/id/${getRandomNumberByRange(0, 1084)}/${w}/${h}`
 }
 
-function drawPath(ctx: CanvasRenderingContext2D, x: number, y: number, operation: 'fill'|'clip') {
+function drawPath(ctx: CanvasRenderingContext2D, x: number, y: number, operation: 'fill' | 'clip') {
   ctx.beginPath()
   ctx.moveTo(x, y)
   ctx.arc(x + l / 2, y - r + 2, r, 0.72 * PI, 2.26 * PI)
@@ -90,17 +94,20 @@ function sum(x: number, y: number) {
 function square(x: number) {
   return x * x
 }
+
 const canvasRef = shallowRef<HTMLCanvasElement>()
 const blockRef = shallowRef<HTMLCanvasElement>()
 const offsetX = ref(0) // 滑块左偏移量
 const maskWidth = ref(0)
 const canvasCtx = shallowRef()
 const blockCtx = shallowRef()
+const blockPosX = ref(0)
 
 function draw(img: HTMLImageElement) {
   // 随机位置创建拼图形状
   const x = getRandomNumberByRange(L + 10, w - (L + 10))
   const y = getRandomNumberByRange(10 + r * 2, h - (L + 10))
+  blockPosX.value = x
   drawPath(canvasCtx.value, x, y, 'fill')
   drawPath(blockCtx.value, x, y, 'clip')
 
@@ -111,10 +118,12 @@ function draw(img: HTMLImageElement) {
   // 提取滑块并放到最左边
   const _y = y - r * 2 - 1
   const ImageData = blockCtx.value.getImageData(x - 3, _y, L, L)
-  // todo
+  // 需要手动设置宽度裁剪，否则putImageData方法复制出的图像会和原图像同时显示在一个视图
+  // todo 此处用ref绑定
   blockRef.value!.width = L
   blockCtx.value.putImageData(ImageData, 0, _y)
 }
+
 onMounted(() => {
   canvasCtx.value = canvasRef.value?.getContext('2d')
   blockCtx.value = blockRef.value?.getContext('2d')
@@ -126,6 +135,7 @@ onMounted(() => {
   document.addEventListener('mouseup', handleDragEnd)
   document.addEventListener('touchend', handleDragEnd)
 })
+
 const isMouseDown = ref(false)
 const originX = ref(0)
 const originY = ref(0)
@@ -153,41 +163,50 @@ const handleDragMove = (e: any) => {
   trail.value.push(moveY)
 }
 
+const actionResult = ref<'success' | 'fail' | ''>()
+
 const handleDragEnd = (e: any) => {
   if (!isMouseDown.value) return false
   isMouseDown.value = false
   const eventX = e.clientX || e.changedTouches[0].clientX
   if (eventX === originX.value) return false
   isMouseDown.value = false
-  const { spliced, verified } = verify(11)
+  const {
+    spliced,
+    verified,
+  } = verify()
   if (spliced) {
     if (verified) {
-      // addClass(this.sliderContainer, 'sliderContainer_success')
-      typeof props.onSuccess === 'function' && props.onSuccess()
+      // addClass(this.sliderContainer, '')
+      actionResult.value = 'success'
+      setTimeout(() => {
+        typeof props.onSuccess === 'function' && props.onSuccess()
+      }, 1000)
     } else {
-      // addClass(this.sliderContainer, 'sliderContainer_fail')
+      actionResult.value = 'fail'
       // this.text.innerHTML = '请再试一次'
       reset()
     }
   } else {
-    // addClass(this.sliderContainer, 'sliderContainer_fail')
+    actionResult.value = 'fail'
     typeof props.onFail === 'function' && props.onFail()
     setTimeout(reset, 1000)
   }
 }
 
-function verify(x: number) {
+function verify() {
   const average = trail.value.reduce(sum) / trail.value.length
   const deviations = trail.value.map(x => x - average)
   const stddev = Math.sqrt(deviations.map(square).reduce(sum) / trail.value.length)
   return {
-    spliced: Math.abs(offsetX.value - x) < 10,
+    spliced: Math.abs(offsetX.value - blockPosX.value) < 10,
     verified: stddev !== 0, // 简单验证拖动轨迹，为零时表示Y轴上下没有波动，可能非人为操作
   }
 }
+
 function reset() {
   // 重置样式
-  // setClass(this.sliderContainer, 'sliderContainer')
+  actionResult.value = ''
   // this.slider.style.left = `${0}px`
   // todo
   blockRef.value!.width = w
@@ -203,8 +222,9 @@ function reset() {
   // 重新加载图片
   // setLoadingState(true)
   const img = createImg(() => draw(img))
-  draw(img)
+  // draw(img)
 }
+
 function refresh() {
   props.onRefresh()
   reset()
@@ -214,23 +234,31 @@ function refresh() {
 <template>
   <div id="slide-capcha" :style="{width: `${w}px`}">
     <canvas ref="canvasRef" :width="w" :height="h" />
-    <canvas ref="blockRef" class="block" :width="w" :height="h" :style="{left: `${offsetX}px`}" @touchstart="handleDragStart" @mousedown="handleDragStart" />
-    <div class="RefreshIcon" @click="refresh" />
-    <div :class="['sliderContainer',{sliderContainer_active: isMouseDown}]">
+    <canvas
+      ref="blockRef" class="block" :width="w" :height="h" :style="{left: `${offsetX}px`}"
+      @touchstart="handleDragStart" @mousedown="handleDragStart"
+    />
+    <div class="refreshIcon" @click="refresh" />
+    <div
+      :class="['sliderContainer', {sliderContainer_active: isMouseDown}, {sliderContainer_success: actionResult === 'success'}, {sliderContainer_fail: actionResult === 'fail'}]"
+    >
       <div class="sliderMask" :style="{width: `${maskWidth}px`}">
-        <span class="slider" :style="{left: `${offsetX}px`}" @touchstart="handleDragStart" @mousedown="handleDragStart">→</span>
-        <div class="sliderText">
-          向右滑动填充拼图
+        <div class="slider" :style="{left: `${offsetX}px`}" @touchstart="handleDragStart" @mousedown="handleDragStart">
+          →
         </div>
+      </div>
+      <div v-show="!isMouseDown && offsetX === 0" class="sliderText">
+        向右滑动填充拼图
       </div>
     </div>
   </div>
 </template>
-<style>
+<style scoped>
 #slide-capcha {
   position: relative;
   margin: 0 auto;
 }
+
 .block {
   position: absolute;
   left: 0;
@@ -259,7 +287,7 @@ function refresh() {
   display: none;
 }
 
-.loadingContainer.loading{
+.loadingContainer.loading {
   display: block;
   pointer-events: none;
 }
@@ -289,7 +317,7 @@ function refresh() {
 }
 
 .sliderContainer_success .sliderIcon {
-  background-position: 0 -26px!important;
+  background-position: 0 -26px !important;
 }
 
 .sliderContainer_fail .slider {
@@ -308,10 +336,6 @@ function refresh() {
 .sliderContainer_fail .sliderIcon {
   top: 14px;
   background-position: 0 -82px !important;
-}
-
-.sliderContainer_active .sliderText, .sliderContainer_success .sliderText, .sliderContainer_fail .sliderText {
-  display: none;
 }
 
 .sliderMask {
@@ -399,8 +423,12 @@ function refresh() {
 }
 
 @keyframes loading-icon-rotate {
-  from { transform: rotate(0) }
-  to { transform: rotate(360deg)}
+  from {
+    transform: rotate(0)
+  }
+  to {
+    transform: rotate(360deg)
+  }
 }
 
 </style>

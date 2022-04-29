@@ -1,4 +1,4 @@
-  {
+{
   "name": "ts-starter-demo",
   "version": "0.0.0",
   "packageManager": "pnpm@6.32.3",
@@ -29,7 +29,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "rimraf dist && vite build",
+    "build": "rimraf dist && vite build && pnpm run gen:dts",
+    "gen:dts": "vue-tsc --declaration --emitDeclarationOnly -p ./tsconfig.build.json",
     "lint": "eslint .",
     "prepublishOnly": "nr build",
     "release": "bumpp --commit --push --tag && pnpm publish --access public",
@@ -53,6 +54,7 @@
     "unbuild": "^0.7.4",
     "vite": "^2.9.6",
     "vitest": "^0.6.0",
-    "vue": "^3.2.33"
+    "vue": "^3.2.33",
+    "vue-tsc": "^0.34.11"
   }
 }
